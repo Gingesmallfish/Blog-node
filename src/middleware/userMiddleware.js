@@ -1,5 +1,5 @@
 exports.validateRegisterParams = (req, res, next) => {
-    const { username, email, password } = req.body;
+    const {username, email, password} = req.body;
     const errors = [];
 
     // 非空校验
