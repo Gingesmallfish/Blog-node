@@ -5,19 +5,19 @@ const conn = require('../config/db'); // 数据库连接
 const userModel = require('../models/userModel'); // 可用于模拟模型层（可选）
 
 // 测试前置操作：1. 清空测试用户数据 2. 确保数据库连接正常
-beforeAll((done) => {
-    // 清空用户名以 test_ 开头的测试数据，避免重复注册冲突
-    const truncateSql = 'DELETE FROM users WHERE username LIKE ?';
-    conn.query(truncateSql, ['test_%'], (err) => {
-        if (err) {
-            console.error('前置操作：清空测试用户数据失败:', err);
-            done(err);
-            return;
-        }
-        console.log('前置操作：测试用户数据已清空');
-        done();
-    });
-});
+// beforeAll((done) => {
+//     // 清空用户名以 test_ 开头的测试数据，避免重复注册冲突
+//     const truncateSql = 'DELETE FROM users WHERE username LIKE ?';
+//     conn.query(truncateSql, ['test_%'], (err) => {
+//         if (err) {
+//             console.error('前置操作：清空测试用户数据失败:', err);
+//             done(err);
+//             return;
+//         }
+//         console.log('前置操作：测试用户数据已清空');
+//         done();
+//     });
+// });
 
 // 测试后置操作：关闭数据库连接，清理资源
 afterAll((done) => {
@@ -35,8 +35,8 @@ afterAll((done) => {
 // -------------- 测试场景1：合法参数 - 注册成功 --------------
 test('POST /api/register 传入合法参数应返回201状态码和注册成功信息', (done) => {
     const validRegisterData = {
-        username: 'test03_valid_user', // 符合用户名格式
-        email: 'test03_valid_user@example.com', // 合法邮箱
+        username: 'demo02', // 符合用户名格式
+        email: 'demo02@example.com', // 合法邮箱
         password: 'Test123456' // 符合密码强度（字母+数字，6-20位）
     };
 

@@ -13,7 +13,6 @@ exports.checkUserExists = (username, email, callback) => {
 };
 
 // 2. 插入新用户（供注册业务使用）
-// 正确的 INSERT 语句（无 ON DUPLICATE KEY UPDATE）
 exports.createUser = (userData, callback) => {
     const sql = `
     INSERT INTO users 
@@ -30,7 +29,7 @@ exports.createUser = (userData, callback) => {
             console.log('模型层：插入用户数据失败', err);
             return callback(err, null);
         }
-        callback(null, result);
+        callback(null, result); // 回调返回插入结果（包含insertId）
     });
 };
 
