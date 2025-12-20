@@ -7,9 +7,7 @@ const userMiddleware = require('../middleware/userMiddleware');
 router.get('/text', userController.getTestUserList);
 
 // 2. 注册接口（先经过参数校验中间件，再进入控制器）
-router.post(
-    '/register',
-    userMiddleware.validateRegisterParams, // 接口级中间件：参数校验
+router.post('/register', userMiddleware.validateRegisterParams, // 接口级中间件：参数校验
     userController.userRegister
 );
 

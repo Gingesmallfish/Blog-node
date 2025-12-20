@@ -1,6 +1,18 @@
 exports.validateRegisterParams = (req, res, next) => {
-    const {username, email, password} = req.body;
+    const {username, email, password, role} = req.body;
     const errors = [];
+
+
+    // 新增角色校验，如果传递了role, 测必须是指定的其中的一个值
+    const validRoles = ['visitor', 'user', 'admin', 'author'];
+    if (role && !validRoles.includes(role)) {
+        return res.status(400).json({
+            code: 400,
+            msg: `角色必须是 ${validRoles.join('、')}中的一种`,
+            data: null
+        });
+    }
+
 
     // 非空校验
     if (!username) errors.push('用户名不能为空');

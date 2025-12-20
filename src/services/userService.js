@@ -3,7 +3,11 @@ const bcrypt = require('bcryptjs');
 
 // 1. 用户注册业务逻辑（核心：密码加密 + 调用模型层）
 exports.registerUser = (userInfo, callback) => {
-    const {username, email, password} = userInfo;
+    const {username, email, password, role} = userInfo;
+    const validRoles = ['visitor', 'user', 'admin', 'author'];
+
+    // 确定最终角色: 合法使用，否侧不传递
+    const finalRole = validRoles.includes(role) ? role : undefined;
 
     // 第一步：先校验用户名/邮箱是否已存在（调用模型层）
     userModel.checkUserExists(username, email, (checkErr, checkResult) => {
@@ -33,11 +37,13 @@ exports.registerUser = (userInfo, callback) => {
                     return callback(new Error('密码加密失败'), null);
                 }
 
+
                 // 第三步：调用模型层，插入新用户数据
                 userModel.createUser({
                     username,
                     email,
-                    passwordHash
+                    passwordHash,
+                    role: finalRole
                 }, (insertErr, insertResult) => {
                     if (insertErr) {
                         return callback(new Error('插入用户数据失败'), null);
@@ -48,7 +54,7 @@ exports.registerUser = (userInfo, callback) => {
                         id: insertResult.insertId,
                         username,
                         email,
-                        role: 'user',
+                        role: finalRole || '',
                         status: 'active',
                         created_at: new Date().toISOString()
                     };

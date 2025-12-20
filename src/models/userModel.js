@@ -15,14 +15,15 @@ exports.checkUserExists = (username, email, callback) => {
 // 2. 插入新用户（供注册业务使用）
 exports.createUser = (userData, callback) => {
     const sql = `
-    INSERT INTO users 
-    (username, email, password_hash, role, status, email_verified) 
-    VALUES (?, ?, ?, 'user', 'active', false)
-  `;
+        INSERT INTO users
+            (username, email, password_hash, role, status, email_verified)
+        VALUES (?, ?, ?, ?, 'active', false)
+    `;
     const params = [
         userData.username,
         userData.email,
-        userData.passwordHash
+        userData.passwordHash,
+        userData.role
     ];
     conn.query(sql, params, (err, result) => {
         if (err) {
@@ -32,6 +33,9 @@ exports.createUser = (userData, callback) => {
         callback(null, result); // 回调返回插入结果（包含insertId）
     });
 };
+
+
+
 
 // 3. 查询所有用户（供 /text 接口使用）
 exports.getAllUsers = (callback) => {

@@ -35,9 +35,10 @@ afterAll((done) => {
 // -------------- 测试场景1：合法参数 - 注册成功 --------------
 test('POST /api/register 传入合法参数应返回201状态码和注册成功信息', (done) => {
     const validRegisterData = {
-        username: 'demo02', // 符合用户名格式
-        email: 'demo02@example.com', // 合法邮箱
-        password: 'Test123456' // 符合密码强度（字母+数字，6-20位）
+        username: 'text01', // 符合用户名格式
+        email: 'demo0100@example.com', // 合法邮箱
+        password: '123456', // 符合密码强度（字母+数字，6-20位）
+        role: 'admin'
     };
 
     request(app)
@@ -58,7 +59,7 @@ test('POST /api/register 传入合法参数应返回201状态码和注册成功�
             expect(res.body.data).toHaveProperty('id');
             expect(res.body.data).toHaveProperty('username', validRegisterData.username);
             expect(res.body.data).toHaveProperty('email', validRegisterData.email);
-            expect(res.body.data).toHaveProperty('role', 'user');
+            expect(res.body.data).toHaveProperty('role', 'admin');
             expect(res.body.data).not.toHaveProperty('password_hash'); // 确保不返回加密密码
 
             // 额外验证：数据库中确实存在该用户（通过模型层查询）
