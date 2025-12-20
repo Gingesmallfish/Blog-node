@@ -1,5 +1,6 @@
 const userModel = require('../models/userModel');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 // 1. 用户注册业务逻辑（核心：密码加密 + 调用模型层）
 exports.registerUser = (userInfo, callback) => {
@@ -8,6 +9,10 @@ exports.registerUser = (userInfo, callback) => {
 
     // 确定最终角色: 合法使用，否侧不传递
     const finalRole = validRoles.includes(role) ? role : undefined;
+
+
+    const token = jwt.sign({username}, 'secret', {expiresIn: '24h'});
+
 
     // 第一步：先校验用户名/邮箱是否已存在（调用模型层）
     userModel.checkUserExists(username, email, (checkErr, checkResult) => {
@@ -56,7 +61,8 @@ exports.registerUser = (userInfo, callback) => {
                         email,
                         role: finalRole || '',
                         status: 'active',
-                        created_at: new Date().toISOString()
+                        token: token,
+                        created_at: new Date().toISOString(),
                     };
                     callback(null, userData); // 业务处理成功，回调用户数据
                 });
@@ -64,6 +70,53 @@ exports.registerUser = (userInfo, callback) => {
         });
     });
 };
+
+
+// 新增：登录业务逻辑
+exports.loginUser = (loginInfo, callback) => {
+    const {usernameOrEmail, password} = loginInfo;
+
+    // 步骤1：查询用户是否存在
+    userModel.findUserByUsernameOrEmail(usernameOrEmail, (err, user) => {
+        if (err) {
+            return callback(new Error('登录查询失败'), null);
+        }
+        if (!user) {
+            return callback(new Error('用户名或密码错误'), null);
+        }
+
+        // 步骤2：验证密码（与注册时的加密密码比对）
+        bcrypt.compare(password, user.password_hash, (hashErr, isMatch) => {
+            if (hashErr) {
+                return callback(new Error('密码验证失败'), null);
+            }
+            if (!isMatch) {
+                return callback(new Error('用户名或密码错误'), null);
+            }
+
+            // 步骤3：生成Token（使用用户ID和用户名，与注册逻辑保持一致）
+            const token = jwt.sign(
+                {id: user.id, username: user.username},
+                process.env.JWT_SECRET,
+                {expiresIn: process.env.JWT_EXPIRES_IN || '24h'}
+            );
+
+            // 步骤4：组装用户信息（隐藏敏感字段，返回必要信息）
+            const userData = {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                role: user.role,
+                status: user.status,
+                created_at: user.created_at,
+                token: token // 包含生成的Token
+            };
+
+            callback(null, userData);
+        });
+    });
+}
+
 
 // 2. 查询所有用户业务逻辑（简单转发，后续可扩展过滤、分页等业务）
 exports.getUserList = (callback) => {

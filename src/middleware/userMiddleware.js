@@ -7,9 +7,7 @@ exports.validateRegisterParams = (req, res, next) => {
     const validRoles = ['visitor', 'user', 'admin', 'author'];
     if (role && !validRoles.includes(role)) {
         return res.status(400).json({
-            code: 400,
-            msg: `角色必须是 ${validRoles.join('、')}中的一种`,
-            data: null
+            code: 400, msg: `角色必须是 ${validRoles.join('、')}中的一种`, data: null
         });
     }
 
@@ -37,21 +35,43 @@ exports.validateRegisterParams = (req, res, next) => {
     // 若有错误，直接返回响应；无错误则执行后续逻辑（next()）
     if (errors.length > 0) {
         return res.status(400).json({
-            code: 400,
-            msg: errors.join('；'),
-            data: null
+            code: 400, msg: errors.join('；'), data: null
         });
     }
 
     next(); // 放行，进入控制器/下一个中间件
 };
 
+// 新增：登录参数校验
+exports.validateLoginParams = (req, res, next) => {
+    const { usernameOrEmail, password } = req.body;
+
+    // 校验参数是否存在
+    if (!usernameOrEmail || !password) {
+        return res.status(400).json({
+            code: 400,
+            msg: '用户名/邮箱和密码不能为空',
+            data: null
+        });
+    }
+
+    // 校验密码长度
+    if (password.length < 6 || password.length > 20) {
+        return res.status(400).json({
+            code: 400,
+            msg: '密码长度需为6-20位',
+            data: null
+        });
+    }
+
+    next(); // 校验通过，进入控制器
+};
+
+
 // 2. 全局异常处理中间件（捕获接口执行过程中的错误，统一返回格式）
 exports.errorHandler = (err, req, res, next) => {
     console.log('中间件：捕获到异常', err.message);
     res.status(500).json({
-        code: 500,
-        msg: '服务器内部错误，请稍后重试',
-        data: null
+        code: 500, msg: '服务器内部错误，请稍后重试', data: null
     });
 };

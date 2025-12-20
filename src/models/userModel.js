@@ -35,7 +35,16 @@ exports.createUser = (userData, callback) => {
 };
 
 
-
+exports.findUserByUsernameOrEmail = (usernameOrEmail, callback) => {
+    const sql = 'SELECT * FROM users WHERE username = ? OR email = ?';
+    conn.query(sql, [usernameOrEmail, usernameOrEmail], (err, result) => {
+        if (err) {
+            console.log('模型层：登录查询用户失败', err);
+            return callback(err, null);
+        }
+        callback(null, result[0]); // 返回查询到的用户（无则为null）
+    });
+};
 
 // 3. 查询所有用户（供 /text 接口使用）
 exports.getAllUsers = (callback) => {
