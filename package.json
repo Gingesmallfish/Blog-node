@@ -20,6 +20,7 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.1",
+    "multer": "^2.0.2",
     "mysql2": "^3.16.0",
     "nodemon": "^3.1.11"
   },
@@ -31,8 +32,13 @@
   "jest": {
     "reporters": [
       "default",
-      ["jest-html-reporter", { "pageTitle": "测试报告", "outputPath": "./src/coverage/index.html" }]
+      [
+        "jest-html-reporter",
+        {
+          "pageTitle": "测试报告",
+          "outputPath": "./src/coverage/index.html"
+        }
+      ]
     ]
   }
-
 }
