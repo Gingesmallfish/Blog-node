@@ -142,3 +142,24 @@ exports.getTestUserList = (req, res, next) => {
         });
     });
 };
+
+
+exports.userLogout = (req, res) => {
+    // req.token：鉴权中间件挂载的有效Token
+    // req.session：Session对象
+    userService.logoutUser(req.token, req.session, (err, result) => {
+        if (err) {
+            console.error('退出失败：', err);
+            return res.status(500).json({
+                code: 500,
+                msg: '退出失败，请重试',
+                data: null
+            });
+        }
+        res.status(200).json({
+            code: 200,
+            msg: result.msg,
+            data: null
+        });
+    });
+};

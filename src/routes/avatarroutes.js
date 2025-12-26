@@ -1,4 +1,3 @@
-// routes/avatarRoutes.js
 const express = require('express');
 const router = express.Router();
 const avatarController = require('../controllers/avatarController');
@@ -19,7 +18,5 @@ router.get(
     authMiddleware.verifyToken,
     avatarController.getAvatar
 );
-
-
-
+// 删除头像TODO
 module.exports = router;

@@ -3,11 +3,12 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 
+
 // 1. 用户注册业务逻辑（新增 email_verified、website 字段处理）
 exports.registerUser = (userInfo, callback) => {
     // 解构时新增 website 字段（前端可选传）
     const {username, email, password, role, website } = userInfo;
-    const validRoles = ['visitor', 'user', 'admin', 'author'];
+    const validRoles = ['visitor', 'user', 'admin', 'author'];  // 用户角色
     const finalRole = validRoles.includes(role) ? role : undefined;
     const token = jwt.sign({username}, 'secret', {expiresIn: '24h'});
 
@@ -188,4 +189,33 @@ exports.getUserList = (callback) => {
         }
         callback(null, result);
     });
+};
+
+
+// 退出登陆
+exports.logoutUser = (token, session, callback) => {
+    try {
+        // 1. 拉黑Token（核心：退出后Token失效）
+        global.jwtBlacklist.add(token);
+        console.log('Token已加入黑名单：', token);
+
+        // 2. 销毁Session（有则销毁，无则忽略）
+        if (session && typeof session.destroy === 'function') {
+            session.destroy((err) => {
+                if (err) {
+                    console.error('Session销毁失败：', err);
+                    // 即使Session销毁失败，Token已拉黑，仍算退出成功
+                    callback(null, { msg: '退出登录成功' });
+                } else {
+                    callback(null, { msg: '退出登录成功' });
+                }
+            });
+        } else {
+            // 无Session，仅拉黑Token即可
+            callback(null, { msg: '退出登录成功' });
+        }
+    } catch (err) {
+        console.error('退出逻辑异常：', err);
+        callback(null, { msg: '退出登录成功' });
+    }
 };

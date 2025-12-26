@@ -12,7 +12,8 @@ app.use(express.urlencoded({extended: true})); // 解析 URL 编码请求体
 app.use(express.json()); // 解析 JSON 请求体
 
 app.use(cors({
-    origin: '*',
+    origin: 'http://localhost:5173',
+    credentials: true
 }))
 
 
