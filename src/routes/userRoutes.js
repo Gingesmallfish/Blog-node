@@ -1,32 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
-const userMiddleware = require('../middleware/userMiddleware');
-const { verifyToken} = require("../middleware/authMiddleware");
-// const { verifyToken } = require('../middleware/authMiddleware');
-// const uploadAvatarMiddleware = require('../middleware/uploadMiddleware');
-// const { uploadAvatar } = require('../controllers/avatarController');
+const {verifyToken, verifyAdmin} = require("../middleware/authMiddleware");
 
-// router.post('/avatar/upload',
-//     verifyToken,          // 1. 先验证Token，挂载req.user
-//     uploadAvatarMiddleware, // 2. 再处理文件上传（生成临时文件）
-//     uploadAvatar          // 3. 最后重命名文件+更新数据库
-// );
-
-// 1. /text 接口（无需参数校验，直接映射控制器）
+// 1. /user 接口（无需参数校验，直接映射控制器）
 router.get('/user', userController.getTestUserList);
-
-// 2. 注册接口（先经过参数校验中间件，再进入控制器）
-router.post('/register', userMiddleware.validateRegisterParams, // 接口级中间件：参数校验
-    userController.userRegister
-);
-
-// 3. 登陆接口（先经过参数校验中间件，再进入控制器）
-// 在现有代码基础上添加：登录接口路由
-router.post('/login',
-    userMiddleware.validateLoginParams, // 登录参数校验
-    userController.userLogin // 登录控制器
-);
 
 // 新增：更新用户状态接口
 router.post('/update-status', userController.updateStatus);
@@ -37,9 +15,16 @@ router.post('/verify-email', userController.verifyUserEmail); // 邮箱验证
 router.put('/update-website', userController.updateWebsite); // 更新个人网站
 
 
-// 4. 退出登陆log
 // 退出路由：先鉴权，再执行退出
 router.post('/logout', verifyToken, userController.userLogout);
 
+// ✅ 关键：绑定双中间件，顺序不可变 → 先验登录，再验权限
+router.delete('/delete/:userId', verifyToken, verifyAdmin, userController.deleteUser);
+
+// 更新用户角色（需 登录+管理员权限）
+router.put('/role', verifyToken, verifyAdmin, userController.updateUserRole);
+
+// 更新用户名和邮件（需 登录权限）
+router.put('/username-email', verifyToken, userController.updateUserNameAndEmail);
 
 module.exports = router;

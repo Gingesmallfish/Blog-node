@@ -1,152 +1,121 @@
 const userService = require('../services/userService');
-const userModel = require('../models/userModel');
-const path = require('path');
-const fs = require('fs');
 
-// 1. 注册控制器（保留）
-exports.userRegister = (req, res, next) => {
-    const {username, email, password, role} = req.body;
-
-    userService.registerUser({username, email, password, role}, (err, userData) => {
-        if (err) {
-            return next(err);
-        }
-
-        req.session.user = {
-            id: userData.id, username: userData.username, email: userData.email
-        };
-        req.session.token = userData.token;
-
-        res.status(200).json({
-            code: 200, msg: '注册成功', data: userData
-        });
-    });
-};
-
-// 新增邮箱验证
+// 新增邮箱验证 ✅ 修复致命BUG：date → data；统一返回写法
 exports.verifyUserEmail = (req, res, next) => {
-    const { userId } = req.body;
+    const {userId} = req.body;
     if (!userId) {
         return res.status(400).json({
-            code: 400, msg: '缺少必填参数：userId', date: null
+            code: 400,
+            msg: '缺少必填参数：userId',
+            data: null // ✅ 修复笔误：date → data
         });
     }
-
 
     userService.verifyEmail(userId, (err, userData) => {
         if (err) {
             return res.status(400).json({
-                code: 400, msg: err.message, data: null
+                code: 400,
+                msg: err.message,
+                data: null
             });
         }
-        return res.status(200).json({
-            code: 200, msg: '验证成功', data: null
+        res.status(200).json({ // ✅ 统一写法：移除多余return
+            code: 200,
+            msg: '验证成功',
+            data: null
         });
     })
 };
 
-// 新增更新个人网站接口
+// 新增更新个人网站接口 ✅ 无BUG，仅统一返回写法
 exports.updateWebsite = (req, res, next) => {
     const {userId, website} = req.body || {};
     if (!userId) {
         return res.status(400).json({
-            code: 400, msg: '缺少必填参数：userId', data: null
+            code: 400,
+            msg: '缺少必填参数：userId',
+            data: null
         });
     }
 
     userService.updateUserWebsite(userId, website, (err, result) => {
         if (err) {
             return res.status(400).json({
-                code: 400, msg: err.message, data: null
+                code: 400,
+                msg: err.message,
+                data: null
             });
         }
-        return res.status(200).json({
-            code: 200, msg: '更新成功', data: {website: result.website}
+        res.status(200).json({ // ✅ 统一写法：移除多余return
+            code: 200,
+            msg: '更新成功',
+            data: {website: result.website}
         });
     })
-
 }
 
-
-// 2. 登录控制器（修正：匹配「账号已被封禁」的文案）
-exports.userLogin = (req, res, next) => {
-    const {usernameOrEmail, password} = req.body;
-
-    if (!usernameOrEmail || !password) {
-        return res.status(400).json({
-            code: 400, msg: '用户名/邮箱和密码不能为空', data: null
-        });
-    }
-
-    userService.loginUser({usernameOrEmail, password}, (err, userData) => {
-        if (err) {
-            // 匹配服务层返回的「账号已被封禁」文案
-            if (err.message.includes('账号已被封禁')) {
-                return res.status(403).json({
-                    code: 403, msg: err.message, data: null
-                });
-            }
-            // 匹配密码/用户不存在的错误
-            if (err.message.includes('用户名或密码错误') || err.message.includes('密码验证失败')) {
-                return res.status(400).json({
-                    code: 400, msg: err.message, data: null
-                });
-            }
-            // 其他服务器错误
-            return next(err);
-        }
-
-        // 仅一次响应！
-        res.status(200).json({
-            code: 200, msg: '登录成功', data: userData
-        });
-    });
-};
-
-// 3. 更新状态控制器（保留）
+// 更新状态控制器 ✅ 无BUG，仅统一返回写法
 exports.updateStatus = (req, res, next) => {
     const {userId, status} = req.body || {};
 
     if (!userId) {
         return res.status(400).json({
-            code: 400, msg: '缺少必填参数：userId', data: null
+            code: 400,
+            msg: '缺少必填参数：userId',
+            data: null
         });
     }
     if (!status) {
         return res.status(400).json({
-            code: 400, msg: '缺少必填参数：status', data: null
+            code: 400,
+            msg: '缺少必填参数：status',
+            data: null
         });
     }
 
     userService.updateUserStatus(userId, status, (err) => {
         if (err) {
             return res.status(400).json({
-                code: 400, msg: err.message, data: null
+                code: 400,
+                msg: err.message,
+                data: null
             });
         }
-        res.status(200).json({
-            code: 200, msg: '状态更新成功', data: null
+        res.status(200).json({ // ✅ 统一写法：移除多余return
+            code: 200,
+            msg: '状态更新成功',
+            data: null
         });
     });
 };
 
-// 4. 查询用户列表控制器（保留）
+// 查询用户列表控制器 ✅ 无BUG（已修复分页传参），保持原样
 exports.getTestUserList = (req, res, next) => {
-    userService.getUserList((err, userList) => {
+    let page = parseInt(req.query.page);
+    let pageSize = parseInt(req.query.pageSize);
+    page = isNaN(page) || page < 1 ? 1 : page;
+    pageSize = isNaN(pageSize) || pageSize < 1 ? 10 : pageSize;
+
+    userService.getUserList(page, pageSize, (err, userList, total) => {
         if (err) {
             return next(err);
         }
 
         res.status(200).json({
-            code: 200, msg: '查询成功', data: userList
+            code: 200,
+            msg: '查询成功',
+            data: {
+                list: userList,
+                total,
+                page,
+                pageSize
+            }
         });
     });
 };
 
-
+// 用户退出 ✅ 无BUG，保持原样
 exports.userLogout = (req, res) => {
-    // req.token：鉴权中间件挂载的有效Token
-    // req.session：Session对象
     userService.logoutUser(req.token, req.session, (err, result) => {
         if (err) {
             console.error('退出失败：', err);
@@ -163,3 +132,82 @@ exports.userLogout = (req, res) => {
         });
     });
 };
+
+// 删除用户接口（仅管理员）✅ 修复2个致命问题+1个格式问题
+exports.deleteUser = (req, res) => {
+    const {userId} = req.params; // 从URL路径获取用户ID
+
+    // ✅ 新增：userId 合法性校验，防止传空/非数字导致SQL报错
+    if (!userId || isNaN(parseInt(userId))) {
+        return res.status(400).json({
+            code: 400,
+            msg: '用户ID格式错误，必须为数字',
+            data: null // ✅ 修复：补充缺失的data字段
+        });
+    }
+
+    // 调用Service层执行删除
+    userService.removeUser(userId, (err, result) => {
+        if (err) {
+            // ✅ 修复：补充缺失的data字段，统一响应格式
+            return res.status(400).json({
+                code: 400,
+                msg: err.message,
+                data: null
+            });
+        }
+        // ✅ 修复致命BUG：补充缺失的data: null，前端可正常解析
+        res.status(200).json({
+            code: 200,
+            msg: result.msg || '用户删除成功',
+            data: null
+        });
+    });
+};
+
+
+// 新增：更新用户角色（仅管理员可用）
+exports.updateUserRole = (req, res) => {
+    const {userId, newRole} = req.body;
+    // 1. 校验入参
+    if (!userId) return res.status(400).json({code: 400, msg: '缺少参数：userId', data: null});
+    if (!newRole) return res.status(400).json({code: 400, msg: '缺少参数：newRole', data: null});
+
+    // 2. 调用服务层
+    userService.updateUserRole(userId, newRole, (err, result) => {
+        if (err) {
+            return res.status(400).json({code: 400, msg: err.message, data: null});
+        }
+        // 3. 返回成功响应
+        res.status(200).json({
+            code: 200,
+            msg: result.msg,
+            data: {userId: result.userId, newRole: result.newRole}
+        });
+    });
+};
+
+
+
+// 新增：修改用户名和邮件控制控制器
+exports.updateUserNameAndEmail = (req, res) => {
+    const {id, username, email} = req.body;
+
+    userService.updateUserInfo(id, username, email, (err, result) => {
+        if (err) {
+            return res.status(400).json({
+                code: 400,
+                msg: err.message,
+                data: null
+            });
+        }
+        res.status(200).json({
+            code: 200,
+            msg: '更新成功',
+            data: {
+                username: result.username,
+                email: result.email
+            }
+        });
+    });
+}

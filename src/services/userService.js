@@ -2,72 +2,6 @@ const userModel = require('../models/userModel');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-
-
-// 1. 用户注册业务逻辑（新增 email_verified、website 字段处理）
-exports.registerUser = (userInfo, callback) => {
-    // 解构时新增 website 字段（前端可选传）
-    const {username, email, password, role, website } = userInfo;
-    const validRoles = ['visitor', 'user', 'admin', 'author'];  // 用户角色
-    const finalRole = validRoles.includes(role) ? role : undefined;
-    const token = jwt.sign({username}, 'secret', {expiresIn: '24h'});
-
-    userModel.checkUserExists(username, email, (checkErr, checkResult) => {
-        if (checkErr) {
-            return callback(checkErr, null);
-        }
-        if (checkResult && checkResult.length > 0) {
-            const existsUser = checkResult[0];
-            const errMsg = existsUser.username === username ? '用户名已被占用' : '邮箱已被注册';
-            return callback(new Error(errMsg), null);
-        }
-
-        // 加盐密码
-        bcrypt.genSalt(10, (saltErr, salt) => {
-            if (saltErr) {
-                console.log('服务层：生成盐值失败', saltErr);
-                return callback(new Error('密码加密失败'), null);
-            }
-
-            // 创建用户
-            bcrypt.hash(password, salt, (hashErr, passwordHash) => {
-                if (hashErr) {
-                    console.log('服务层：密码加密失败', hashErr);
-                    return callback(new Error('密码加密失败'), null);
-                }
-
-                // 调用模型层时，新增 website 字段，email_verified 固定传 false（注册默认未验证）
-                userModel.createUser({
-                    username,
-                    email,
-                    passwordHash,
-                    role: finalRole,
-                    website: website || null, // 前端不传则为 null
-                    emailVerified: false // 注册时默认未验证
-                }, (insertErr, insertResult) => {
-                    if (insertErr) {
-                        return callback(new Error('插入用户数据失败'), null);
-                    }
-
-                    // 返回数据中新增 email_verified、website 字段
-                    const userData = {
-                        id: insertResult.insertId,
-                        username,
-                        email,
-                        role: finalRole || '',
-                        status: 'active',
-                        email_verified: false, // 新增：默认未验证
-                        website: website || null, // 新增：个人网站（前端传则返回，否则 null）
-                        token: token,
-                        created_at: new Date().toISOString(),
-                    };
-                    callback(null, userData);
-                });
-            });
-        });
-    });
-};
-
 // 2. 新增：验证邮箱（标记 email_verified 为 true）
 exports.verifyEmail = (userId, callback) => {
     // 校验用户ID合法性
@@ -80,7 +14,7 @@ exports.verifyEmail = (userId, callback) => {
             console.log('服务层：更新邮箱验证状态失败', err);
             return callback(err, null);
         }
-        callback(null, { msg: '邮箱验证成功' });
+        callback(null, {msg: '邮箱验证成功'});
     });
 };
 
@@ -100,62 +34,7 @@ exports.updateUserWebsite = (userId, website, callback) => {
             console.log('服务层：更新个人网站失败', err);
             return callback(err, null);
         }
-        callback(null, { msg: '个人网站更新成功', website });
-    });
-};
-
-// 2. 修复后的登录业务逻辑（核心：合并两次 callback）
-exports.loginUser = (loginInfo, callback) => {
-    const {usernameOrEmail, password} = loginInfo;
-
-    // 步骤1：查询用户是否存在
-    userModel.findUserByUsernameOrEmail(usernameOrEmail, (err, user) => {
-        if (err) {
-            return callback(new Error('登录查询失败'), null);
-        }
-        if (!user) {
-            return callback(new Error('用户名或密码错误'), null);
-        }
-
-        // 步骤2：检查用户状态（提前校验，避免无效密码验证）
-        if (user.status === 'banned') {
-            return callback(new Error(`账号已被封禁：${user.status}`), null);
-        }
-
-        // 步骤3：验证密码
-        bcrypt.compare(password, user.password_hash, (hashErr, isMatch) => {
-            if (hashErr) {
-                return callback(new Error('密码验证失败'), null);
-            }
-            if (!isMatch) {
-                return callback(new Error('用户名或密码错误'), null);
-            }
-
-            // 步骤4：更新最后登录时间（密码验证成功后才更新）
-            userModel.updateLastLogin(user.id, (updateErr) => {
-                if (updateErr) {
-                    console.log('更新最后登录时间失败', updateErr);
-                    // 仅打印警告，不阻断登录
-                }
-
-                // 步骤5：生成Token（统一环境变量，无则用默认值）
-                const token = jwt.sign({id: user.id, username: user.username}, process.env.JWT_SECRET || 'secret', // 兼容无环境变量的情况
-                    {expiresIn: process.env.JWT_EXPIRES_IN || '24h'});
-
-                // 步骤6：组装用户数据（仅调用一次 callback！）
-                const userData = {
-                    id: user.id,
-                    username: user.username,
-                    email: user.email,
-                    role: user.role,
-                    status: user.status,
-                    avatar: user.avatar,
-                    created_at: user.created_at,
-                    token: token
-                };
-                callback(null, userData); // 唯一的 callback 调用
-            });
-        });
+        callback(null, {msg: '个人网站更新成功', website});
     });
 };
 
@@ -182,40 +61,75 @@ exports.updateUserStatus = (userId, status, callback) => {
 };
 
 // 4. 查询所有用户（保留原有逻辑，无需修改）
-exports.getUserList = (callback) => {
-    userModel.getAllUsers((err, result) => {
+// userService.js
+exports.getUserList = (page, pageSize, callback) => {
+    // 计算偏移量：(页码-1)*每页条数（逻辑正确）
+    const offset = (page - 1) * pageSize;
+    // 1. 查询当前页数据
+    userModel.getUsersByPage(offset, pageSize, (err, userList) => {
         if (err) {
-            return callback(new Error('查询用户列表失败'), null);
+            return callback(new Error('查询用户列表失败'), null, 0);
         }
-        callback(null, result);
+        // 2. 查询总条数
+        userModel.getUserTotal((err, total) => {
+            if (err) {
+                return callback(new Error('查询用户总数失败'), null, 0);
+            }
+            callback(null, userList, total[0].total);
+        });
+    });
+};
+
+// 退出登陆
+exports.logoutUser = (token, session, callback) => {
+    // 1. 拉黑Token（核心：退出后Token失效）
+    global.jwtBlacklist.add(token);
+    // 2. 销毁Session（有则销毁，无则忽略）
+    if (session && typeof session.destroy === 'function') {
+        session.destroy((err) => {
+            if (err) {
+                console.error('Session销毁失败：', err);
+                // 即使Session销毁失败，Token已拉黑，仍算退出成功
+                return callback(null, {msg: '退出登录成功'});
+            }
+            callback(null, {msg: '退出登录成功'});
+        });
+    } else {
+        // 无Session，仅拉黑Token即可
+        callback(null, {msg: '退出登录成功'});
+    }
+};
+
+
+// 删除用户业务逻辑（参数校验）
+exports.removeUser = (userId, callback) => {
+    // 校验用户ID合法性（必须是正整数）
+    if (!userId || isNaN(Number(userId)) || Number(userId) <= 0) {
+        return callback(new Error('用户ID不合法，必须为正整数'), null);
+    }
+    // 调用Model层执行删除
+    userModel.deleteUserById(Number(userId), callback);
+};
+
+// 新增：更新用户角色（调用模型层）
+// 新增：更新用户角色（调用模型层）
+exports.updateUserRole = (userId, newRole, callback) => {
+    userModel.updateUserRole(userId, newRole, (err, data) => {
+        if (err) {
+            console.error('Service层-更新用户角色失败：', err);
+            return callback(err, null);
+        }
+        callback(null, data);
     });
 };
 
 
-// 退出登陆
-exports.logoutUser = (token, session, callback) => {
-    try {
-        // 1. 拉黑Token（核心：退出后Token失效）
-        global.jwtBlacklist.add(token);
-        console.log('Token已加入黑名单：', token);
+// 修改用户名和邮件的业务逻辑
+exports.updateUserInfo = (id, username, email, callback) => {
 
-        // 2. 销毁Session（有则销毁，无则忽略）
-        if (session && typeof session.destroy === 'function') {
-            session.destroy((err) => {
-                if (err) {
-                    console.error('Session销毁失败：', err);
-                    // 即使Session销毁失败，Token已拉黑，仍算退出成功
-                    callback(null, { msg: '退出登录成功' });
-                } else {
-                    callback(null, { msg: '退出登录成功' });
-                }
-            });
-        } else {
-            // 无Session，仅拉黑Token即可
-            callback(null, { msg: '退出登录成功' });
-        }
-    } catch (err) {
-        console.error('退出逻辑异常：', err);
-        callback(null, { msg: '退出登录成功' });
-    }
-};
+    userModel.updateUserInfoById(id, username, email, callback, (err, data) => {
+        if (err) return callback(err, null)
+        callback(null, data)
+    })
+}
+
