@@ -1,6 +1,12 @@
 const userService = require('../services/userService');
 
-// 新增邮箱验证 ✅ 修复致命BUG：date → data；统一返回写法
+/**
+ * 邮箱验证
+ * @param req 参数
+ * @param res 响应
+ * @param next 中间件
+ * @returns {*} 放回数据
+ */
 exports.verifyUserEmail = (req, res, next) => {
     const {userId} = req.body;
     if (!userId) {
@@ -27,7 +33,13 @@ exports.verifyUserEmail = (req, res, next) => {
     })
 };
 
-// 新增更新个人网站接口 ✅ 无BUG，仅统一返回写法
+/**
+ * 更新个人网站
+ * @param req 参数
+ * @param res 响应
+ * @param next 中间件
+ * @returns {*} 返回数据
+ */
 exports.updateWebsite = (req, res, next) => {
     const {userId, website} = req.body || {};
     if (!userId) {
@@ -54,7 +66,13 @@ exports.updateWebsite = (req, res, next) => {
     })
 }
 
-// 更新状态控制器 ✅ 无BUG，仅统一返回写法
+/**
+ * 更新用户的状态
+ * @param req 参数
+ * @param res 响应
+ * @param next 中间件
+ * @returns {*} 放回数据
+ */
 exports.updateStatus = (req, res, next) => {
     const {userId, status} = req.body || {};
 
@@ -89,7 +107,12 @@ exports.updateStatus = (req, res, next) => {
     });
 };
 
-// 查询用户列表控制器 ✅ 无BUG（已修复分页传参），保持原样
+/**
+ * 获取用户列表
+ * @param req 参数
+ * @param res 响应
+ * @param next 中间件
+ */
 exports.getTestUserList = (req, res, next) => {
     let page = parseInt(req.query.page);
     let pageSize = parseInt(req.query.pageSize);
@@ -114,7 +137,11 @@ exports.getTestUserList = (req, res, next) => {
     });
 };
 
-// 用户退出 ✅ 无BUG，保持原样
+/**
+ * 退出登录
+ * @param req 参数
+ * @param res 响应
+ */
 exports.userLogout = (req, res) => {
     userService.logoutUser(req.token, req.session, (err, result) => {
         if (err) {
@@ -166,7 +193,12 @@ exports.deleteUser = (req, res) => {
 };
 
 
-// 新增：更新用户角色（仅管理员可用）
+/**
+ * 更新用户角色
+ * @param req 参数
+ * @param res 响应
+ * @returns {*} 返回数据
+ */
 exports.updateUserRole = (req, res) => {
     const {userId, newRole} = req.body;
     // 1. 校验入参
@@ -188,8 +220,11 @@ exports.updateUserRole = (req, res) => {
 };
 
 
-
-// 新增：修改用户名和邮件控制控制器
+/**
+ * 更新用户名和邮箱
+ * @param req 参数
+ * @param res 响应
+ */
 exports.updateUserNameAndEmail = (req, res) => {
     const {id, username, email} = req.body;
 
@@ -208,6 +243,32 @@ exports.updateUserNameAndEmail = (req, res) => {
                 username: result.username,
                 email: result.email
             }
+        });
+    });
+}
+
+/**
+ * 搜索和分页查询用户列表
+ * @param req 参数
+ * @param res 相应
+ */
+exports.getUserListController = (req, res) => {
+    const queryParams = req.query;
+
+    // 调用业务层，回调处理结果/错误
+    userService.getUserListService(queryParams, (err, data) => {
+        if (err) {
+            // 错误响应：和前端错误处理逻辑匹配
+            return res.status(500).json({
+                code: 500,
+                msg: err || '用户列表查询失败'
+            });
+        }
+        // 成功响应：格式严格对应前端接收逻辑
+        res.status(200).json({
+            code: 200,
+            msg: '用户列表查询成功',
+            data: data
         });
     });
 }

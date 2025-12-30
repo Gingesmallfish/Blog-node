@@ -1,6 +1,8 @@
 const userModel = require('../models/userModel');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const {errorHandler} = require("../middleware/userMiddleware");
+const {data} = require("express-session/session/cookie");
 
 // 2. 新增：验证邮箱（标记 email_verified 为 true）
 exports.verifyEmail = (userId, callback) => {
@@ -133,3 +135,16 @@ exports.updateUserInfo = (id, username, email, callback) => {
     })
 }
 
+/**
+ * 搜索，条件查询 业务逻辑
+ * @param params
+ * @param callback
+ */
+exports.getUserListService = (params, callback) => {
+    userModel.getUsersByCondition(params, (err, data) => {
+        if (err) {
+            return callback(`用户数据查询失败：${err.message}`, null);
+        }
+        callback(null, data);
+    });
+};

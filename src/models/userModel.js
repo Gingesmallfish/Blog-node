@@ -121,8 +121,13 @@ exports.getAllUsers = (callback) => {
     });
 };
 
-// 新增根据用户id删除用户
+//
 // 根据ID删除用户（物理删除，生产可改逻辑删除）
+/**
+ * 删除用户
+ * @param userId
+ * @param callback
+ */
 exports.deleteUserById = (userId, callback) => {
     const sql = 'DELETE FROM users WHERE id = ?';
     conn.query(sql, [userId], (err, result) => {
@@ -139,8 +144,13 @@ exports.deleteUserById = (userId, callback) => {
 };
 
 
-// 更新用户角色 （只有管理员可以是）
-// 新增：更新用户角色（仅管理员可用）
+/**
+ * 更新用户角色 - 只有管理员可操作
+ * @param userId
+ * @param newRole
+ * @param callback
+ * @returns {*}
+ */
 exports.updateUserRole = (userId, newRole, callback) => {
     // 1. 校验角色合法性（与数据库ENUM一致）
     const validRoles = ['visitor', 'user', 'author', 'admin'];
@@ -156,10 +166,11 @@ exports.updateUserRole = (userId, newRole, callback) => {
     }
     // 3. 执行SQL更新
     const sql = `
-    UPDATE users 
-    SET role = ?, updated_at = CURRENT_TIMESTAMP 
-    WHERE id = ?
-  `;
+        UPDATE users
+        SET role       = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+    `;
     conn.query(sql, [newRole, queryId], (err, result) => {
         if (err) {
             console.error('更新用户角色失败：', err);
@@ -172,15 +183,19 @@ exports.updateUserRole = (userId, newRole, callback) => {
         }
         // 5. 返回成功数据
         callback(null, {
-            userId: queryId,
-            newRole: newRole,
-            msg: `用户ID=${queryId} 角色已更新为：${newRole}`
+            userId: queryId, newRole: newRole, msg: `用户ID=${queryId} 角色已更新为：${newRole}`
         });
     });
 };
 
 
-// 通过用户id修改用户名和邮件
+/**
+ * 更新用户信息
+ * @param id 用户ID
+ * @param username 用户名
+ * @param email 邮箱
+ * @param callback callback 回调函数 (err, result)
+ */
 exports.updateUserInfoById = (id, username, email, callback) => {
     const sql = 'UPDATE users SET username = ?, email = ? WHERE id = ?';
     conn.query(sql, [username, email, id], (err, result) => {
@@ -195,10 +210,74 @@ exports.updateUserInfoById = (id, username, email, callback) => {
         }
         // 5. 返回成功数据
         callback(null, {
-            id: id,
-            username: username,
-            email: email,
-            msg: `用户ID=${id} 信息已更新`
+            id: id, username: username, email: email, msg: `用户ID=${id} 信息已更新`
         })
     })
 }
+
+
+/**
+ * 按条件查询用户列表【纯回调写法】
+ * @param {Object} params 查询参数 {keyword,status,role,page,pageSize}
+ * @param {Function} callback 回调函数 (err, result) => {}
+ */
+
+// ✅ 完全保留你的 exports + 箭头函数写法，零改动
+exports.getUsersByCondition = (params, callback) => {
+    // 解构参数 + 设置默认值，和前端完全对应（你的代码原样保留）
+    const {
+        keyword = '', status = '', role = '', page = 1, pageSize = 10
+    } = params;
+
+    // ✅ 修复：page/pageSize强制转数字，避免偏移量计算出错
+    const pageNum = parseInt(page) || 1;
+    const sizeNum = parseInt(pageSize) || 10;
+    const offset = (pageNum - 1) * sizeNum; // MySQL分页核心：偏移量
+
+    // ✅ 构建查询条件 & 防SQL注入参数数组（你的代码原样保留）
+    let whereSql = 'WHERE 1=1';
+    const queryParams = [];
+
+    // 用户名/邮箱 模糊搜索
+    if (keyword) {
+        whereSql += ' AND (username LIKE ? OR email LIKE ?)';
+        queryParams.push(`%${keyword}%`, `%${keyword}%`);
+    }
+    // 用户状态 精准筛选
+    if (status) {
+        whereSql += ' AND status = ?';
+        queryParams.push(status);
+    }
+    // 用户角色 精准筛选
+    if (role) {
+        whereSql += ' AND role = ?';
+        queryParams.push(role);
+    }
+
+    // 1. 第一步：查询符合条件的【总条数】（用于前端分页）
+    const countSql = `SELECT COUNT(*) AS total
+                      FROM users ${whereSql}`;
+    // ✅ 直接用你的单连接 conn.query，完美匹配！
+    conn.query(countSql, queryParams, (countErr, countResult) => {
+        if (countErr) return callback(countErr, null); // 错误向上传递
+        const total = countResult[0].total;
+
+        // 2. 第二步：查询【当前页数据】（分页+倒序）
+        const listSql = `
+            SELECT *
+            FROM users ${whereSql}
+            ORDER BY created_at DESC
+            LIMIT ?, ?
+        `;
+        const listParams = [...queryParams, offset, sizeNum];
+        // ✅ 同样用单连接 conn.query
+        conn.query(listSql, listParams, (listErr, list) => {
+            if (listErr) return callback(listErr, null);
+            // ✅ 返回前端需要的完整数据格式（和前端无缝对接）
+            callback(null, {
+                list, total, page: pageNum, pageSize: sizeNum
+            });
+        });
+    });
+};
+

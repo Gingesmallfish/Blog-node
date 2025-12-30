@@ -27,4 +27,6 @@ router.put('/role', verifyToken, verifyAdmin, userController.updateUserRole);
 // 更新用户名和邮件（需 登录权限）
 router.put('/username-email', verifyToken, userController.updateUserNameAndEmail);
 
+// 搜索
+router.get('/search', verifyToken, verifyAdmin, userController.getUserListController)
 module.exports = router;

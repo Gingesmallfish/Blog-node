@@ -46,7 +46,7 @@ exports.verifyToken = (req, res, next) => {
             const errMsg = verifyErr.name === 'TokenExpiredError'
                 ? '登录凭证已过期，请重新登录'
                 : '登录凭证无效，请重新登录';
-            return res.status(401).json({ code: 401, msg: errMsg, data: null });
+            return res.status(401).json({code: 401, msg: errMsg, data: null});
         }
         // ===== ✅ 修复2：强校验+类型强制转换，根治slice报错 =====
         // 兜底空值 + 强制转换为指定类型，确保后续操作安全
@@ -69,10 +69,10 @@ exports.verifyToken = (req, res, next) => {
         userModel.getUserInfoById(userId, (dbErr, userInfo) => {
             if (dbErr) {
                 console.error('❌ 数据库用户校验失败：', dbErr);
-                return res.status(500).json({ code:500, msg:'服务器内部错误', data:null });
+                return res.status(500).json({code: 500, msg: '服务器内部错误', data: null});
             }
             if (!userInfo) {
-                return res.status(401).json({ code:401, msg:`用户ID:${userId} 不存在`, data:null });
+                return res.status(401).json({code: 401, msg: `用户ID:${userId} 不存在`, data: null});
             }
             // 账号状态校验
             if (userInfo.status !== 'active') {
@@ -100,7 +100,7 @@ exports.verifyToken = (req, res, next) => {
 // ✅ 管理员权限校验中间件（同步加固，杜绝类型异常）
 exports.verifyAdmin = (req, res, next) => {
     if (!req.user || typeof req.user !== 'object') {
-        return res.status(403).json({ code:403, msg:'用户身份校验失败', data:null });
+        return res.status(403).json({code: 403, msg: '用户身份校验失败', data: null});
     }
     // ✅ 双重兜底：确保role是字符串+小写匹配
     const userRole = req.user.role ? String(req.user.role).toLowerCase() : '';
