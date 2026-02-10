@@ -5,14 +5,14 @@ const session = require('express-session');
 const path = require('path');
 const cors = require('cors');
 const app = express();
-const port = 3000;
+const port = 8888;
 
 // 1. 全局中间件
 app.use(express.urlencoded({extended: true})); // 解析 URL 编码请求体
 app.use(express.json()); // 解析 JSON 请求体
 
 app.use(cors({
-    origin: '*',
+    origin: '*', // 前端开发服务器地址
     credentials: true
 }))
 
@@ -27,8 +27,6 @@ app.use(session({
         maxAge: 24 * 60 * 60 * 1000 // Session 有效期（1天）
     }
 }))
-
-
 
 
 // 配置静态资源目录：前端可通过 /uploads/avatars/文件名 访问头像

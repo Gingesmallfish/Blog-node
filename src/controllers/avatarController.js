@@ -40,7 +40,7 @@ exports.uploadAvatar = (req, res) => {
     const ext = req.fileExt || path.extname(req.file.originalname) || '.png';
     const newFileName = `avatar-${userId}-${Date.now()}${ext}`;
     const newPath = path.join(path.dirname(tempPath), newFileName);
-    const avatarUrl = `http://localhost:3000/uploads/avatars/${newFileName}`;
+    const avatarUrl = `http://localhost:8888/uploads/avatars/${newFileName}`;
 
     // 4. 异步：重命名文件（回调处理错误）
     fs.rename(tempPath, newPath, (renameErr) => {
