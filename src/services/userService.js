@@ -55,8 +55,10 @@ exports.updateUserStatus = (userId, status, callback) => {
 };
 
 // 查询分页用户列表
+// services/userService.js
 exports.getUserList = (page, pageSize, callback) => {
-    const offset = (page - 1) * pageSize;
+    // 正确计算偏移量：(页码 - 1) * 每页条数
+    const offset = (page - 1) * pageSize; 
     userModel.getUsersByPage(offset, pageSize, (err, userList) => {
         if (err) {
             return callback(new Error('查询用户列表失败'));
@@ -165,9 +167,11 @@ exports.assignUserRole = (userId, newRole, callback) => {
 exports.getUserPermissions = (userId, callback) => {
     permissionModel.getUserPermissions(userId, (err, permissions) => {
         if (err) {
+            console.log('查询权限失败', err);
             return callback(err, []);
         }
-        callback(null, permissions); // permissions是['user:list']格式的数组
+        const permArray = Array.isArray(permissions) ? permissions: []
+        callback(null, permArray); // permissions是['user:list']格式的数组
     });
 };
 

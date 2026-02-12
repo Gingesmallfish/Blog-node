@@ -69,24 +69,23 @@ exports.revokePermission = (userId, permCode, callback) => {
 
 // 3. 查询用户已拥有的权限（关联字典表返回完整信息）
 exports.getUserPermissions = (userId, callback) => {
-    // 关联查询：获取权限编码+名称，更友好
-    const sql = `
-        SELECT p.code, p.name
-        FROM user_permissions up
-                 LEFT JOIN permissions p ON up.permission_code = p.code
-        WHERE up.user_id = ?
-    `;
+  const sql = `
+    SELECT permission_code 
+    FROM user_permissions 
+    WHERE user_id = ?
+  `;
+  query(sql, [userId], (err, results) => {
+    if (err) {
+      console.error("查询权限失败：", err);
+      return callback(err, []);
+    }
 
-    query(sql, [userId], (err, result) => {
-        if (err) {
-            console.error('查询用户权限失败：', err);
-            return callback(err, null);
-        }
+    // 提取 permission_code 组成数组
+    const permissions = results.map(item => item.permission_code);
 
-        // 提取权限编码数组（适配前端逻辑）
-        const permCodes = result.map(item => item.code);
-        callback(null, permCodes);
-    });
+    // ✅ 返回纯字符串数组
+    callback(null, permissions);
+  });
 };
 
 // 4. 查询所有权限（从字典表查，最准确）

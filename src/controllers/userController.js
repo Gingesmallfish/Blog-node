@@ -111,24 +111,19 @@ exports.updateStatus = (req, res) => {
  * @param res 响应
  */
 
+
 exports.getUserList = (req, res) => {
-  // ✅ 修复：先判断是否是admin，admin直接放行；非admin再校验permissions
   const isAdmin = (req.user.role || "").toLowerCase() === "admin";
-  const hasPermission =
-    isAdmin ||
-    (req.user.permissions && req.user.permissions.includes("user:list"));
+  const hasPermission = isAdmin || (req.user.permissions && req.user.permissions.includes("user:list"));
 
   if (!hasPermission) {
-    return res
-      .status(403)
-      .json({ code: 403, msg: "无用户列表访问权限", data: [] });
+    return res.status(403).json({ code: 403, msg: "无用户列表访问权限", data: [] });
   }
 
-  console.log("当前用户权限：", req.user.permissions);
-  console.log("是否是管理员：", isAdmin); // 新增日志，方便排查
-  // 正常查询所有用户
-  const page = parseInt(req.query.page) || 1;
+  // 关键：从 pageNum 获取页码
+  const page = parseInt(req.query.pageNum) || 1; 
   const pageSize = parseInt(req.query.pageSize) || 10;
+  
   userService.getUserList(page, pageSize, (err, userList, total) => {
     if (err) {
       return res.status(500).json({ code: 500, msg: "查询失败", data: [] });
@@ -379,7 +374,7 @@ exports.changePassword = (req, res) => {
       res.status(200).json({
         code: 200,
         msg: "密码修改成功",
-        data: result,
+        data: { result },
       });
     },
   );

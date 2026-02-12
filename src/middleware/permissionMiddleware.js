@@ -26,6 +26,23 @@ exports.checkPermission = (requiredPerm) => {
     };
 };
 
+exports.checkUserListPermission = (req, res, next) => {
+  const isAdmin = (req.user.role || "").toLowerCase() === "admin";
+  const hasPermission =
+    isAdmin ||
+    (req.user.permissions && req.user.permissions.includes("user:list"));
+
+  if (!hasPermission) {
+    return res.status(403).json({
+      code: 403,
+      msg: "无用户列表访问权限",
+      data: [],
+    });
+  }
+
+  next();
+};
+
 // 保留原有checkAdmin
 exports.checkAdmin = (req, res, next) => {
     if (!req.user) {

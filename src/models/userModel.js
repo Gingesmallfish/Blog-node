@@ -103,10 +103,13 @@ exports.getUserInfoById = (userId, callback) => {
   });
 };
 
-// 分页查询用户（关联权限）
+
 exports.getUsersByPage = (offset, pageSize, callback) => {
-  const sql = "select * from users limit ? offset ?;";
-  conn.query(sql, [pageSize, offset], (err, result) => {
+  // 错误写法：const sql = "select * from users limit ? offset ?;";
+  // 正确写法：LIMIT 偏移量, 条数
+  const sql = "select * from users limit ?, ?;"; 
+  // 参数顺序必须是 [offset, pageSize]
+  conn.query(sql, [offset, pageSize], (err, result) => {
     if (err) {
       console.log("模型层：分页查询用户失败", err);
       return callback(err, null);
@@ -118,18 +121,18 @@ exports.getUsersByPage = (offset, pageSize, callback) => {
   });
 };
 
-// 查询用户总条数
 exports.getUserTotal = (callback) => {
-  const sql = "select count(*) as total from users;";
+  const sql = "SELECT COUNT(*) AS total FROM users";
   conn.query(sql, (err, result) => {
     if (err) {
-      console.log("模型层：查询用户总数失败", err);
+      console.error("模型层：查询用户总数失败", err);
       return callback(err, null);
     }
+
+    // ✅ 返回标准化数据
     callback(null, result);
   });
 };
-
 // 8. 查询所有用户（关联权限，只保留一份）
 exports.getAllUsers = (callback) => {
   const sql =
@@ -224,9 +227,9 @@ exports.updateUserInfoById = (id, username, email, callback) => {
 // 按条件查询用户列表
 exports.getUsersByCondition = (params, callback) => {
   const {
-    keyword = "",
-    status = "",
-    role = "",
+    keyword = "", // 关键字
+    status = "", // 状态
+    role = "", // 角色
     page = 1,
     pageSize = 10,
   } = params;

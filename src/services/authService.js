@@ -75,7 +75,7 @@ exports.registerUser = (userInfo, callback) => {
   });
 };
 
-// 登录核心逻辑（新增权限查询）
+// 登录核心逻辑（修复权限赋值）
 exports.loginUser = (loginData, callback) => {
   const { usernameOrEmail, password } = loginData;
 
@@ -94,12 +94,11 @@ exports.loginUser = (loginData, callback) => {
     if (user.status === "inactive")
       return callback(new Error("账号未激活，请联系管理员"));
 
-    // 4. ✅ 核心新增：查询用户权限
-    getUserPermissions(user.id, (permErr, permData) => {
+    // 4. ✅ 修复：查询用户权限（返回的是纯数组）
+    getUserPermissions(user.id, (permErr, permissions) => { // 直接接收权限数组
       if (permErr) {
-        // 权限查询失败兜底（返回空数组）
         console.warn("查询用户权限失败：", permErr);
-        permData = { role: user.role, permissions: [] };
+        permissions = []; // 失败兜底空数组
       }
 
       // 5. 生成Token
@@ -114,7 +113,7 @@ exports.loginUser = (loginData, callback) => {
         if (updateErr) console.warn("更新最后登录时间失败：", updateErr);
       });
 
-      // 7. ✅ 构造返回数据（包含permissions）
+      // 7. ✅ 修复：构造返回数据（直接赋值权限数组）
       const userData = {
         id: user.id,
         username: user.username,
@@ -124,7 +123,7 @@ exports.loginUser = (loginData, callback) => {
         avatar: user.avatar || null,
         created_at: user.created_at,
         token: token,
-        permissions: permData.permissions || [], // ✅ 关键：添加权限数组
+        permissions: permissions || [], // ✅ 关键：直接用查询到的权限数组
       };
 
       // 8. 返回完整数据（包含权限）
