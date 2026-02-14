@@ -1,37 +1,7 @@
 const userService = require("../services/userService");
 const userModel = require("../models/userModel");
 
-/**
- * 邮箱验证
- * @param req 参数
- * @param res 响应
- * @returns {*} 返回数据
- */
-exports.verifyUserEmail = (req, res) => {
-  const { userId } = req.body;
-  if (!userId) {
-    return res.status(400).json({
-      code: 400,
-      msg: "缺少必填参数：userId",
-      data: null,
-    });
-  }
 
-  userService.verifyEmail(userId, (err) => {
-    if (err) {
-      return res.status(400).json({
-        code: 400,
-        msg: err.message,
-        data: null,
-      });
-    }
-    res.status(200).json({
-      code: 200,
-      msg: "邮箱验证成功",
-      data: null,
-    });
-  });
-};
 
 /**
  * 更新个人网站
@@ -65,45 +35,6 @@ exports.updateWebsite = (req, res) => {
   });
 };
 
-/**
- * 更新用户的状态
- * @param req 参数
- * @param res 响应
- * @returns {*} 返回数据
- */
-exports.updateStatus = (req, res) => {
-  const { userId, status } = req.body || {};
-
-  if (!userId) {
-    return res.status(400).json({
-      code: 400,
-      msg: "缺少必填参数：userId",
-      data: null,
-    });
-  }
-  if (!status) {
-    return res.status(400).json({
-      code: 400,
-      msg: "缺少必填参数：status",
-      data: null,
-    });
-  }
-
-  userService.updateUserStatus(userId, status, (err) => {
-    if (err) {
-      return res.status(400).json({
-        code: 400,
-        msg: err.message,
-        data: null,
-      });
-    }
-    res.status(200).json({
-      code: 200,
-      msg: "用户状态更新成功",
-      data: null,
-    });
-  });
-};
 
 /**
  * 获取用户列表
@@ -111,19 +42,22 @@ exports.updateStatus = (req, res) => {
  * @param res 响应
  */
 
-
 exports.getUserList = (req, res) => {
   const isAdmin = (req.user.role || "").toLowerCase() === "admin";
-  const hasPermission = isAdmin || (req.user.permissions && req.user.permissions.includes("user:list"));
+  const hasPermission =
+    isAdmin ||
+    (req.user.permissions && req.user.permissions.includes("user:list"));
 
   if (!hasPermission) {
-    return res.status(403).json({ code: 403, msg: "无用户列表访问权限", data: [] });
+    return res
+      .status(403)
+      .json({ code: 403, msg: "无用户列表访问权限", data: [] });
   }
 
   // 关键：从 pageNum 获取页码
-  const page = parseInt(req.query.pageNum) || 1; 
+  const page = parseInt(req.query.pageNum) || 1;
   const pageSize = parseInt(req.query.pageSize) || 10;
-  
+
   userService.getUserList(page, pageSize, (err, userList, total) => {
     if (err) {
       return res.status(500).json({ code: 500, msg: "查询失败", data: [] });
@@ -190,41 +124,6 @@ exports.deleteUser = (req, res) => {
   });
 };
 
-/**
- * ✅ 核心修复：更新用户角色（精准返回oldRole/newRole，完全匹配你要的格式）
- * @param req 参数
- * @param res 响应
- * @returns {*} 返回数据
- */
-exports.updateUserRole = (req, res) => {
-  const { userId, newRole } = req.body;
-  // 1. 严格校验入参
-  if (!userId)
-    return res
-      .status(400)
-      .json({ code: 400, msg: "缺少必填参数：userId", data: null });
-  if (!newRole)
-    return res
-      .status(400)
-      .json({ code: 400, msg: "缺少必填参数：newRole", data: null });
-
-  // 2. 调用服务层（已修复：返回oldRole+newRole）
-  userService.updateUserRole(userId, newRole, (err, result) => {
-    if (err) {
-      return res.status(400).json({ code: 400, msg: err.message, data: null });
-    }
-    // 3. ✅ 精准返回你需要的格式，包含oldRole
-    res.status(200).json({
-      code: 200,
-      msg: "用户角色更新成功",
-      data: {
-        userId: result.userId,
-        oldRole: result.oldRole,
-        newRole: result.newRole,
-      },
-    });
-  });
-};
 
 /**
  * 更新用户名和邮箱
@@ -379,3 +278,48 @@ exports.changePassword = (req, res) => {
     },
   );
 };
+
+
+
+// 1. 重命名：updateUserInfo → editUserCoreInfo（核心信息编辑）
+exports.editUserCoreInfo = (req, res) => {
+  const params = req.body;
+
+  userService.editUserCoreInfo(params, (err, result) => {
+    if (err) {
+      console.error("【编辑用户核心信息】详细错误：", err.stack);
+      return res.status(200).json({
+        code: 500,
+        msg: err.message || "更新用户核心信息失败"
+      });
+    }
+
+    res.status(200).json({
+      code: 200,
+      msg: result.message,
+      data: result
+    });
+  });
+};
+
+// 2. 重命名：updateUserProfile → editUserPersonalInfo（个人信息编辑）
+exports.editUserPersonalInfo = (req, res) => {
+  const params = req.body;
+
+  userService.editUserPersonalInfo(params, (err, result) => {
+    if (err) {
+      console.error("【编辑用户个人信息】详细错误：", err.stack);
+      return res.status(200).json({
+        code: 500,
+        msg: err.message || "更新个人信息失败"
+      });
+    }
+
+    res.status(200).json({
+      code: 200,
+      msg: result.message,
+      data: result
+    });
+  });
+};
+

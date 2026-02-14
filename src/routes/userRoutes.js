@@ -14,17 +14,6 @@ router.get(
   userController.getUserList,
 );
 
-// 2. 更新用户状态（✅ 管理员专属：verifyToken + verifyAdmin 或 checkPermission('user:update')）
-// 推荐用checkPermission，统一权限校验逻辑
-router.post(
-  "/update-status",
-  verifyToken,
-  checkPermission("use:update"), // 或用verifyAdmin（二选一，推荐前者）
-  userController.updateStatus,
-);
-
-// 3. 邮箱验证接口（✅ 个人操作：仅登录即可，单鉴权）
-router.post("/verify-email", verifyToken, userController.verifyUserEmail);
 
 // 4. 更新个人网站接口（✅ 个人操作：仅登录即可，单鉴权）
 router.put("/update-website", verifyToken, userController.updateWebsite);
@@ -40,22 +29,6 @@ router.delete(
   userController.deleteUser,
 );
 
-// 7. 更新用户角色（✅ 核心权限：verifyToken + checkPermission('user:assign:role')）
-router.put(
-  "/role",
-  verifyToken,
-  checkPermission("user:assign:role"),
-  userController.updateUserRole,
-);
-
-// 8. 更新用户名和邮箱（✅ 个人操作：仅登录即可，单鉴权）
-// 注意：如果是管理员修改他人信息，需加checkPermission('user:update')
-router.put(
-  "/username-email",
-  verifyToken,
-  userController.updateUserNameAndEmail,
-);
-
 // 9. 用户搜索接口（✅ 同用户列表：verifyToken + checkPermission('user:list')）
 router.get(
   "/search",
@@ -66,6 +39,13 @@ router.get(
 // 10. 获取用户信息接口（✅ 个人操作：仅登录即可，单鉴权）
 router.get("/info", verifyToken, userController.getUserInfo);
 
+// 11. 修改密码接口（✅ 个人操作：仅登录即可，单鉴权）
 router.put("/password", verifyToken, userController.changePassword);
+
+// 12. 修改用户核心信息（用户名、邮箱
+router.put('/edit-user-core-info', verifyToken, userController.editUserCoreInfo); 
+// 13. 修改用户个人信息（简介、地址、电话等）
+router.put('/edit-user-personal-info', verifyToken, userController.editUserPersonalInfo);
+
 
 module.exports = router;

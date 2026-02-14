@@ -3,20 +3,8 @@ const bcrypt = require("bcryptjs");
 const permissionModel = require("./permissionModel");
 
 // ========== 移除所有重复定义，保留一份完整逻辑 ==========
-// 2. 更新邮箱验证状态
-exports.updateEmailVerified = (userId, isVerified, callback) => {
-  const sql = "UPDATE users SET email_verified = ? WHERE id = ?";
-  conn.query(sql, [isVerified, userId], (err, result) => {
-    if (err) {
-      console.log("模型层：更新邮箱验证状态失败", err);
-      return callback(err, null);
-    }
-    if (result.affectedRows === 0) {
-      return callback(new Error("用户不存在"), null);
-    }
-    callback(null, result);
-  });
-};
+
+
 
 // 3. 更新个人网站
 exports.updateUserWebsite = (userId, website, callback) => {
@@ -57,17 +45,7 @@ exports.getUserStatus = (userId, callback) => {
   });
 };
 
-// 7. 更新用户状态
-exports.updateUserStatus = (userId, status, callback) => {
-  const sql = "UPDATE users SET status = ? WHERE id = ?";
-  conn.query(sql, [status, userId], (err, result) => {
-    if (err) {
-      console.log("模型层：更新用户状态失败", err);
-      return callback(err, null);
-    }
-    callback(null, result);
-  });
-};
+
 
 // ========== 核心修复：查询用户信息时关联权限 ==========
 exports.getUserInfoById = (userId, callback) => {
@@ -282,15 +260,8 @@ exports.getUsersByCondition = (params, callback) => {
   });
 };
 
-// 根据用户ID查询角色（单独方法，避免冲突）
-exports.getUserRoleById = (userId, callback) => {
-  const sql = "select role from users where id = ? LIMIT 1";
-  conn.query(sql, [userId], (err, results) => {
-    if (err) return callback(err, null);
-    const role = results && results.length > 0 ? results[0].role : null;
-    callback(null, role);
-  });
-};
+
+
 
 // 校验角色是否合法
 exports.isRoleValid = (role) => {
@@ -311,6 +282,7 @@ exports.addPermToSingleUser = (user, callback) => {
   });
 };
 
+// 批量给用户列表补充权限
 exports.addPermToUserList = (userList, callback) => {
   if (!Array.isArray(userList) || userList.length === 0) {
     return callback(null, []);
@@ -336,6 +308,7 @@ exports.addPermToUserList = (userList, callback) => {
   });
 };
 
+// ========== 其他用户相关服务方法（如修改密码、分配角色等） ==========
 exports.updateUserPassword = (userId, newPassword, callback) => {
   const queryId = parseInt(userId);
   if (isNaN(queryId) || queryId < 1) {
@@ -360,3 +333,69 @@ exports.updateUserPassword = (userId, newPassword, callback) => {
     });
   });
 };
+
+
+
+// 根据ID查询用户
+exports.getUserById = (userId, callback) => {
+  const sql = "SELECT * FROM users WHERE id = ?";
+  conn.query(sql, [userId], (err, rows) => {
+    if (err) {
+      return callback(err, null); // 异常传递给回调
+    }
+    callback(null, rows[0] || null); // 成功返回数据
+  });
+};
+
+// 更新用户核心信息
+exports.editUserCoreInfo = (params, callback) => {
+  const { userId, username, email, role, status, email_verified } = params;
+  const sql = `
+    UPDATE users 
+    SET username = ?, email = ?, role = ?, status = ?, email_verified = ?
+    WHERE id = ?
+  `;
+  conn.query(sql, [username, email, role, status, email_verified, userId], (err, result) => {
+    if (err) {
+      return callback(err, null);
+    }
+    callback(null, result);
+  });
+};
+/**
+ * 修改用户个人信息，个人网站
+ * @param {*} params 
+ * @param {*} callback 
+ */
+exports.editUserPersonalInfo = (params, callback) => {
+  const { userId, bio, website } = params;
+  
+  let updateFields = [];
+  let sqlParams = [];
+  
+  if (bio !== undefined) {
+    updateFields.push("bio = ?");
+    sqlParams.push(bio);
+  }
+  if (website !== undefined) {
+    updateFields.push("website = ?");
+    sqlParams.push(website);
+  }
+
+  const sql = `
+    UPDATE users 
+    SET ${updateFields.join(", ")}
+    WHERE id = ?
+  `;
+  sqlParams.push(userId);
+  
+  conn.query(sql, sqlParams, (err, result) => {
+    if (err) {
+      return callback(err, null);
+    }
+    callback(null, result);
+  });
+};
+
+
+

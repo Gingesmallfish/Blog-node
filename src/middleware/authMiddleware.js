@@ -6,8 +6,21 @@ const userService = require('../services/userService');
 global.jwtBlacklist = global.jwtBlacklist || new Set();
 console.log('✅ JWT黑名单初始化完成，当前黑名单数量：', global.jwtBlacklist.size);
 
-// ✅ 核心JWT鉴权中间件（修复异步执行顺序）
+// ✅ 核心JWT鉴权中间件（修复异步执行顺序 + 新增白名单）
 exports.verifyToken = (req, res, next) => {
+    // ========== 新增：白名单逻辑（跳过登录/注册接口） ==========
+    // 定义不需要鉴权的接口路径（根据你的实际路由调整）
+    const whiteList = [
+        '/api/auth/login',    // 登录接口
+        '/api/auth/register'  // 注册接口
+    ];
+    
+    // 检查当前请求路径是否在白名单中，在则直接放行
+    if (whiteList.includes(req.path)) {
+        console.log(`✅ 请求路径 ${req.path} 在白名单，跳过鉴权`);
+        return next();
+    }
+
     // 1. 校验请求头Token格式
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

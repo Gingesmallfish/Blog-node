@@ -1,22 +1,19 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const avatarController = require('../controllers/avatarController');
-const uploadMiddleware = require('../middleware/uploadMiddleware');
-const authMiddleware = require('../middleware/authMiddleware');
+const avatarController = require("../controllers/avatarController");
+const uploadMiddleware = require("../middleware/uploadMiddleware");
+const authMiddleware = require("../middleware/authMiddleware");
 
-// 上传头像
-router.post(
-    '/upload',
-    authMiddleware.verifyToken, // 1. 验证token，设置req.user
-    uploadMiddleware,           // 2. 处理文件上传（此时可以访问req.user）
-    avatarController.uploadAvatar // 3. 处理业务逻辑
-);
+// 所有接口都需要登录验证
+router.use(authMiddleware.verifyToken);
 
-// 获取头像
-router.get(
-    '/avatar',
-    authMiddleware.verifyToken,
-    avatarController.getAvatar
-);
-// 删除头像TODO
+// 1. 上传头像文件
+router.post("/upload", uploadMiddleware, avatarController.uploadAvatar);
+
+// 2. 通过ID修改头像URL
+router.post("/update-by-id", avatarController.updateAvatarById);
+
+// 3. 获取头像
+router.get("/get", avatarController.getAvatar);
+
 module.exports = router;
