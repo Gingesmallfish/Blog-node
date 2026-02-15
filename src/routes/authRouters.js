@@ -10,9 +10,8 @@ router.post('/register', validateRegisterParams, // 接口级中间件：参数�
 
 // 3. 登陆接口（先经过参数校验中间件，再进入控制器）
 // 在现有代码基础上添加：登录接口路由
-router.post('/login',
-    validateLoginParams, // 登录参数校验
-    userLogin // 登录控制器
-);
+// 应该是这样的配置
+router.post('/login', validateLoginParams, userLogin);
+
 
 module.exports = router;
